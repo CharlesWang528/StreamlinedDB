@@ -1,4 +1,4 @@
-# RookieDB
+# StreamlinedDB
 
 ![The official unofficial mascot of the class projects](images/derpydb-small.jpg)
 
