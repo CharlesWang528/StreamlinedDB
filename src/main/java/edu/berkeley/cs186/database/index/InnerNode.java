@@ -151,7 +151,41 @@ class InnerNode extends BPlusNode {
     @Override
     public Optional<Pair<DataBox, Long>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
             float fillFactor) {
-        // TODO(proj2): implement
+        int order =  metadata.getOrder();
+        int maxSize = order * 2;
+
+        while (keys.size() <= maxSize && data.hasNext()){
+            BPlusNode rightMostChild = getChild(keys.size());
+            Optional<Pair<DataBox,Long>> popUpPair = rightMostChild.bulkLoad(data,fillFactor);
+            if (popUpPair.isPresent()){
+                //we need to split the right most child into 2 nodes
+                keys.add(popUpPair.get().getFirst());
+                children.add((popUpPair.get().getSecond()));
+            }
+
+            if (keys.size() <=maxSize){
+                //no need for split
+                sync();
+                return Optional.empty();
+            }
+
+            //Case when this inner node is full
+            List<DataBox> keys = new ArrayList<>();
+            List<Long> children = new ArrayList<>();
+
+            for (int i = 0; i < order + 1; i++){
+                //fill with overflowing data
+                keys.add(this.keys.remove(order));
+                children.add(this.children.remove(order));
+            }
+            DataBox popUpKey = keys.remove(0);
+            InnerNode newNode = new InnerNode(metadata,bufferManager,keys,children,treeContext);
+            Long popUpPageNum = newNode.getPage().getPageNum();
+
+            newNode.sync();
+            sync();
+            return Optional.of(new Pair<>(popUpKey,popUpPageNum));
+        }
 
         return Optional.empty();
     }

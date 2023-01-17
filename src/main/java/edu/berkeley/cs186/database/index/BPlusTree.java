@@ -203,8 +203,6 @@ public class BPlusTree {
         // TODO(proj4_integration): Update the following line
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
-        // TODO(proj2): Return a BPlusTreeIterator.
-
         return new BPlusTreeIterator();
     }
 
@@ -339,7 +337,31 @@ public class BPlusTree {
         // TODO(proj4_integration): Update the following line
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
-        // TODO(proj2): implement
+        if (new BPlusTreeIterator().hasNext()){
+            throw new UnsupportedOperationException("Tree is not empty");
+        }
+
+        while (data.hasNext()){
+            Optional<Pair<DataBox, Long>> popUpPair = root.bulkLoad(data, fillFactor);
+
+            if (popUpPair.isPresent()){
+                //need to split
+                List<DataBox> keys = new ArrayList<>();
+                List<Long> children = new ArrayList<>();
+                keys.add(popUpPair.get().getFirst());
+                children.add(root.getPage().getPageNum()); // old root-> inner code
+                children.add(popUpPair.get().getSecond());
+
+                //new root
+
+                InnerNode newRoot = new InnerNode(metadata,bufferManager,keys,children,lockContext);
+
+                updateRoot(newRoot);
+            }
+        }
+
+
+
         // Note: You should NOT update the root variable directly.
         // Use the provided updateRoot() helper method to change
         // the tree's root if the old root splits.
