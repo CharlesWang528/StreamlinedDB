@@ -162,9 +162,46 @@ class LeafNode extends BPlusNode {
     // See BPlusNode.put.
     @Override
     public Optional<Pair<DataBox, Long>> put(DataBox key, RecordId rid) {
-        // TODO(proj2): implement
+        Optional<RecordId> asserToBeNull = getKey(key);
+        if (asserToBeNull.isPresent()){
+            throw new BPlusTreeException("Same key already present");
+        }
 
+        int index = Collections.binarySearch(keys, key);
+        index = -index -1;
+        keys.add(index, key);
+        rids.add(index, rid);
+
+        int order = metadata.getOrder();
+        int maxSize = order * 2;
+        if (keys.size() > maxSize){
+            //create new leaf node
+            List<DataBox> keys = new ArrayList<>();
+            List<RecordId> rids = new ArrayList<>();
+            for (int i = 0; i < order + 1; i++){
+                keys.add(this.keys.remove(order));
+                rids.add(this.rids.remove(order));
+            }
+            LeafNode newNode =new LeafNode(metadata,bufferManager,keys, rids, this.rightSibling,treeContext);
+
+            //the right sibling of the old node needs changing
+            this.rightSibling = Optional.of(newNode.getPage().getPageNum());
+            sync();
+            return Optional.of(new Pair<DataBox,Long>(keys.get(0),newNode.getPage().getPageNum()));
+
+        }
+        sync();
         return Optional.empty();
+    }
+
+    /**
+     * Create a new page with newKeys and newRids, and link to current page.
+     */
+    private Pair<DataBox, Long> newPage(List<DataBox> newKeys, List<RecordId> newRids) {
+        LeafNode newPage = new LeafNode(metadata, bufferManager, newKeys, newRids, rightSibling, treeContext);
+        long newPageNum = newPage.getPage().getPageNum();
+        rightSibling = Optional.of(newPageNum);
+        return new Pair<>(newKeys.get(0), newPageNum);
     }
 
     // See BPlusNode.bulkLoad.
@@ -179,16 +216,9 @@ class LeafNode extends BPlusNode {
     // See BPlusNode.remove.
     @Override
     public void remove(DataBox key) {
-        int index = Collections.binarySearch(keys, key);
-        if (index < 0){
-            return;
-        }
-        keys.remove(index);
-        rids.remove(index);
+        rids.remove(keys.indexOf(key));
+        keys.remove(key);
         sync();
-
-
-        return;
     }
 
     // Iterators ///////////////////////////////////////////////////////////////

@@ -98,12 +98,53 @@ class InnerNode extends BPlusNode {
         return node.getLeftmostLeaf();
     }
 
+
+
     // See BPlusNode.put.
     @Override
     public Optional<Pair<DataBox, Long>> put(DataBox key, RecordId rid) {
-        // TODO(proj2): implement
 
-        return Optional.empty();
+        int index = numLessThanEqual(key, keys);
+        BPlusNode child = getChild(index);
+        Optional<Pair<DataBox, Long>> pair = child.put(key, rid);
+
+        int order = metadata.getOrder();
+        int maxOrder = order * 2;
+
+
+        //Child did not split
+        if (!pair.isPresent()){
+            return Optional.empty();
+        }
+
+        DataBox newKey = pair.get().getFirst();
+        Long newRid = pair.get().getSecond();
+
+        keys.add(index, newKey);
+        children.add(index+1, newRid);
+
+        //add to leaf node, no need for new inner node
+        if (keys.size() <= maxOrder){
+            sync();
+            return Optional.empty();
+        }
+
+        //need to create a new inner node
+
+        List<DataBox> newKeys = new ArrayList<>();
+        List<Long> newchildren = new ArrayList<>();
+
+        for (int i = 0; i < order+1; i++){
+            newKeys.add(this.keys.remove(order));
+            newchildren.add((this.children.remove(order + 1)));
+        }
+
+        DataBox UpKey = newKeys.remove(0);
+        InnerNode newNode = new InnerNode(metadata,bufferManager,newKeys,newchildren,treeContext);
+        long UpPageNum = newNode.getPage().getPageNum();
+        newNode.sync();
+        sync();
+        return Optional.of(new Pair<>(UpKey,UpPageNum));
     }
 
     // See BPlusNode.bulkLoad.
@@ -119,9 +160,9 @@ class InnerNode extends BPlusNode {
     @Override
     public void remove(DataBox key) {
         LeafNode leafNode = get(key);
-        remove(key);
+        leafNode.remove(key);
 
-        return;
+
     }
 
     // Helpers /////////////////////////////////////////////////////////////////
