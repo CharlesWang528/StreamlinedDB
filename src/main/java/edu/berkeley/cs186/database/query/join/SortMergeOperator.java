@@ -139,7 +139,45 @@ public class SortMergeOperator extends JoinOperator {
          * or null if there are no more records to join.
          */
         private Record fetchNextRecord() {
-            // TODO(proj3_part1): implement
+            while (leftRecord != null){
+                if (rightRecord != null && !marked){
+                    //advance the lesser until we get a match
+                    while (compare(leftRecord, rightRecord) < 0){
+                        if (leftIterator.hasNext()){
+                            this.leftRecord = leftIterator.next();
+                        } else{
+                            this.leftRecord = null;
+                            return null;
+                        }
+                    }
+                    while (compare(leftRecord, rightRecord)>0){
+                        if (rightIterator.hasNext()){
+                            this.rightRecord = rightIterator.next();
+                        } else{
+                            this.rightRecord = null;
+                            break;
+                        }
+                    }
+
+                    //mark the beginning of the matched right records
+                    this.rightIterator.markPrev();
+                    this.marked = true;
+                }
+                if (rightRecord != null && compare(leftRecord, rightRecord) == 0){
+                    //there's a next right record, join if a match
+                    Record result = this.leftRecord.concat(rightRecord);
+                    this.rightRecord = rightIterator.hasNext() ? rightIterator.next(): null;
+                    return result;
+                } else{
+                    //reset right and advance left
+                    this.leftRecord = leftIterator.hasNext() ? leftIterator.next() : null;
+                    this.rightIterator.reset();
+                    this.marked = false;
+                    this.rightRecord = this.rightIterator.next();
+                }
+
+
+            }
             return null;
         }
 
