@@ -20,10 +20,15 @@ public enum LockType {
     public static boolean compatible(LockType a, LockType b) {
         if (a == null || b == null) {
             throw new NullPointerException("null lock type");
+        } else if (a == NL || b == NL){
+            return  true;
+        } else if(a == IS || b == IS){
+            return a!= X && b != X;
+        } else{
+            return a == IX && b == IX || a == S && b == S;
         }
-        // TODO(proj4_part1): implement
 
-        return false;
+
     }
 
     /**
@@ -52,10 +57,15 @@ public enum LockType {
     public static boolean canBeParentLock(LockType parentLockType, LockType childLockType) {
         if (parentLockType == null || childLockType == null) {
             throw new NullPointerException("null lock type");
+        } else if (childLockType == NL || parentLockType == IX){
+            return true;
+        } else if (parentLockType == NL || parentLockType == S || parentLockType == X){
+            return false;
+        } else {
+            return parentLockType == IS && (childLockType == IS || childLockType == S) ||
+                    parentLockType == SIX && (childLockType == IX|| childLockType == X);
         }
-        // TODO(proj4_part1): implement
 
-        return false;
     }
 
     /**
@@ -67,10 +77,14 @@ public enum LockType {
     public static boolean substitutable(LockType substitute, LockType required) {
         if (required == null || substitute == null) {
             throw new NullPointerException("null lock type");
+        } else if( required == NL || required == substitute){
+            return true;
+        } else if (required == IX || required == SIX || required == X){
+            return false;
+        } else{
+            return required == IS && substitute == IX || required == S && (substitute == SIX || substitute == X);
         }
-        // TODO(proj4_part1): implement
 
-        return false;
     }
 
     /**
