@@ -94,6 +94,17 @@ public enum LockType {
         return this == LockType.IX || this == LockType.IS || this == LockType.SIX;
     }
 
+
+    public LockType getExplicit(){
+        if (this == LockType.SIX){
+            return LockType.S;
+        } else if (isIntent()){
+            return LockType.NL;
+        } else{
+            return this;
+        }
+    }
+
     @Override
     public String toString() {
         switch (this) {
